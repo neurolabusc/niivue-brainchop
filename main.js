@@ -1,24 +1,69 @@
-import { Niivue } from "@niivue/niivue"
+import { Niivue, NVMeshUtilities } from "@niivue/niivue"
 import {runInference } from './brainchop-mainthread.js'
 import { inferenceModelsList, brainChopOpts } from "./brainchop-parameters.js"
 import { isChrome, localSystemDetails } from "./brainchop-telemetry.js"
 import MyWorker from "./brainchop-webworker.js?worker"
 
-async function main() {
-  smoothCheck.onchange = function () {
-    nv1.setInterpolation(!smoothCheck.checked)
+class NiiMathWrapper {
+  constructor(workerScript) {
+    this.worker = new Worker(workerScript)
   }
+  static async load(workerScript = './niimathWorker.js') {
+    return new NiiMathWrapper(workerScript)
+  }
+  niimath(niiBuffer, operationsText) {
+    return new Promise((resolve, reject) => {
+      const niiBlob = new Blob([niiBuffer], { type: 'application/octet-stream' })
+      const inName = 'input.nii' // or derive from context
+      let outName = inName
+      if (operationsText.includes("-mesh")) {
+        outName = 'output.mz3' // or derive from context
+      }
+      const args = operationsText.trim().split(/\s+/)
+      args.unshift(inName)
+      args.push(outName)
+      const file = new File([niiBlob], inName)
+      this.worker.onmessage = (e) => {
+        if (e.data.blob instanceof Blob) {
+          const reader = new FileReader()
+          reader.onload = () => {
+            resolve(reader.result) // return ArrayBuffer
+          }
+          reader.onerror = () => {
+            reject(new Error('Failed to read the Blob as an ArrayBuffer'))
+          }
+          reader.readAsArrayBuffer(e.data.blob)
+        } else {
+          reject(new Error('Expected Blob from worker'))
+        }
+      }
+      this.worker.onerror = (e) => {
+        reject(new Error(e.message))
+      }
+      this.worker.postMessage({ blob: file, cmd: args, outName: outName })
+    })
+  }
+  terminate() {
+    this.worker.terminate()
+  }
+}
+
+async function main() {
+  const wrapper = await NiiMathWrapper.load()
+  /*smoothCheck.onchange = function () {
+    nv1.setInterpolation(!smoothCheck.checked)
+  }*/
   aboutBtn.onclick = function () {
     window.alert("Drag and drop NIfTI images. Use pulldown menu to choose brainchop model")
   }
-  diagnosticsBtn.onclick = function () {
+  /*diagnosticsBtn.onclick = function () {
     if (diagnosticsString.length < 1) {
       window.alert('No diagnostic string generated: run a model to create diagnostics')
       return
     }
     navigator.clipboard.writeText(diagnosticsString)
     window.alert('Diagnostics copied to clipboard\n' + diagnosticsString)
-  }
+  }*/
   opacitySlider0.oninput = function () {
     nv1.setOpacity(0, opacitySlider0.value / 255)
     nv1.updateGLVolume()
@@ -177,6 +222,59 @@ async function main() {
     show3Dcrosshair: true,
     onLocationChange: handleLocationChange,
   }
+  createMeshBtn.onclick = function () {
+    if (nv1.meshes.length > 0)
+      nv1.removeMesh(nv1.meshes[0])
+    if (nv1.volumes.length < 1) {
+      window.alert("Image not loaded. Drag and drop an image.")
+    } else {
+      remeshDialog.show()
+    }
+  }
+  applyBtn.onclick = async function () {
+    const niiBuffer = await nv1.saveImage({volumeByIndex: nv1.volumes.length - 1}).buffer
+    loadingCircle.classList.remove('hidden')
+    //mesh with isosurface of 0.5
+    let ops = "-mesh -i 0.5"
+    //const largestCheckValue = largestCheck.checked
+    if (largestCheck.checked)
+      ops += " -l 1"
+    let reduce = Math.min(Math.max(Number(shrinkPct.value) / 100, 0.01), 1)
+    ops += " -r " + reduce.toString()
+    let hollowInt = Number(hollowSelect.value )
+    if (hollowInt > 0)
+      ops += " -b 1" //fill bubbles
+    if (hollowInt < 0)
+      ops = " -hollow 0.5 "+hollowInt + ' '+ ops
+    console.log('niimath operation', ops)
+    const arrayBuffer = await wrapper.niimath(niiBuffer, ops )
+    loadingCircle.classList.add('hidden')
+    if (nv1.meshes.length > 0)
+      nv1.removeMesh(nv1.meshes[0])
+    await nv1.loadFromArrayBuffer(arrayBuffer, 'test.mz3')
+    nv1.reverseFaces(0)
+  }
+  saveMeshBtn.onclick = function () {
+    if (nv1.meshes.length < 1) {
+      window.alert("No mesh open for saving. Use 'Create Mesh'.")
+    } else {
+      saveDialog.show()
+    }
+  }
+  applySaveBtn.onclick = function () {
+    if (nv1.meshes.length < 1) {
+      return
+    }
+    let format = 'obj'
+    if (formatSelect.selectedIndex === 0) {
+      format = 'mz3'
+    }
+    if (formatSelect.selectedIndex === 2) {
+      format = 'stl'
+    }
+    NVMeshUtilities.saveMesh(nv1.meshes[0].pts, nv1.meshes[0].tris, `mesh.${format}`, true)
+  }
+
   var diagnosticsString = ''
   var chopWorker
   let nv1 = new Niivue(defaults)
@@ -185,7 +283,6 @@ async function main() {
   nv1.opts.multiplanarForceRender = true
   nv1.opts.yoke3Dto2DZoom = true
   nv1.opts.crosshairGap = 11
-  smoothCheck.onchange()
   await nv1.loadVolumes([{ url: "./t1_crop.nii.gz" }])
   for (let i = 0; i < inferenceModelsList.length; i++) {
     var option = document.createElement("option")
