@@ -6,14 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="./niivue.css" />
   <title>Niivue brain chop</title>
-  <script type="module" crossorigin src="./assets/index-Df9DSPEf.js"></script>
+  <script type="module" crossorigin src="./assets/index-CznODzmb.js"></script>
 </head>
 
 <body>
   <header>
-    <label for="smoothCheck">Interpolate</label>
-    <input type="checkbox" id="smoothCheck" unchecked />
-    &nbsp;
     <label for="clipCheck">Clip Plane</label>
     <input type="checkbox" id="clipCheck" unchecked />
     <label for="opacitySlider0">Background Opacity</label>
@@ -26,14 +23,19 @@
     <select id="modelSelect">
     </select>
     &nbsp;
+    <button id="createMeshBtn">Create mesh</button>
+    &nbsp;
     <button id="saveBtn">Save Overlay</button>
     &nbsp;
     <label for="workerCheck">Use Webworker</label>
     <input type="checkbox" title="webworkers are faster but not supported by all browsers" id="workerCheck" checked />
     &nbsp;
-    <button id="diagnosticsBtn">Show Diagnostics</button>
+    <button id="saveMeshBtn">Save Mesh</button>
     &nbsp;
     <button id="aboutBtn">About</button>
+    &nbsp;
+    <div id="loadingCircle" class="loading-circle hidden"></div>
+
   </header>
   <main id="canvas-container">
     <canvas id="gl1"></canvas>
@@ -52,6 +54,61 @@
       </table>
     </div>
   </footer>
+  <dialog id="remeshDialog">
+    <form method="dialog">
+      <p>
+        <label>
+          Hollow:
+          <select id="hollowSelect">
+            <option value="1">False: solid fill bubbles</option>
+            <option value="0">False: solid</option>
+            <option value="-1">1mm</option>
+            <option value="-2">2mm</option>
+            <option value="-4" selected>4mm</option>
+            <option value="-8">8mm</option>
+            <option value="-16">16mm</option>
+          </select>
+        </label>
+      </p>
+      <p>
+        <input type="checkbox" id="largestCheck" checked/>
+        <label>Largest cluster only</label>
+      </p>
+      <p>
+        <label for="smoothSlide">Smoothing</label>
+        <input
+          type="range"
+          min="0"
+          max="20"
+          value="5"
+          class="slider"
+          id="smoothSlide"
+        />
+      </p>
+      <p>
+        <label>Simplify Percent (1..100)</label>
+        <input id="shrinkPct" type="number" min="1"  value="30" max="100">
+      </p>
+      <button id="cancelBtn" formmethod="dialog">Cancel</button>
+      <button autofocus id="applyBtn" value="default">Apply</button>
+    </form>
+  </dialog>
+  <dialog id="saveDialog">
+    <form method="dialog">
+      <p>
+        <label>
+          Format:
+          <select id="formatSelect">
+            <option>MZ3 small and precise</option>
+            <option selected>OBJ widely supported</option>
+            <option>STL popular for printing</option>
+          </select>
+        </label>
+      </p>
+      <button id="cancelSaveBtn" formmethod="dialog">Cancel</button>
+      <button autofocus id="applySaveBtn" value="default">Save</button>
+    </form>
+  </dialog>
 </body>
 
 </html>
