@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="stylesheet" href="./niivue.css" />
   <title>Niivue brain chop</title>
-  <script type="module" crossorigin src="./assets/index-CznODzmb.js"></script>
+  <script type="module" crossorigin src="./assets/index-RavQ8OVg.js"></script>
 </head>
 
 <body>
@@ -23,16 +23,16 @@
     <select id="modelSelect">
     </select>
     &nbsp;
-    <button id="createMeshBtn">Create mesh</button>
+    <button id="createMeshBtn">Create Mesh</button>
     &nbsp;
-    <button id="saveBtn">Save Overlay</button>
-    &nbsp;
-    <label for="workerCheck">Use Webworker</label>
-    <input type="checkbox" title="webworkers are faster but not supported by all browsers" id="workerCheck" checked />
+    <button id="saveBtn">Save Image</button>
     &nbsp;
     <button id="saveMeshBtn">Save Mesh</button>
     &nbsp;
     <button id="aboutBtn">About</button>
+    &nbsp;
+    <label for="workerCheck"  hidden>Use Webworker</label>
+    <input type="checkbox"  hidden title="webworkers are faster but not supported by all browsers" id="workerCheck" checked />
     &nbsp;
     <div id="loadingCircle" class="loading-circle hidden"></div>
 
@@ -57,10 +57,13 @@
   <dialog id="remeshDialog">
     <form method="dialog">
       <p>
+        <label>Closing (mm)</label>
+        <input id="closeMM" type="number" min="0"  value="4" max="100">
+      </p>
+      <p>
         <label>
           Hollow:
           <select id="hollowSelect">
-            <option value="1">False: solid fill bubbles</option>
             <option value="0">False: solid</option>
             <option value="-1">1mm</option>
             <option value="-2">2mm</option>
@@ -69,6 +72,10 @@
             <option value="-16">16mm</option>
           </select>
         </label>
+      </p>
+      <p>
+        <input type="checkbox" id="bubbleCheck" checked/>
+        <label>Fill bubbles</label>
       </p>
       <p>
         <input type="checkbox" id="largestCheck" checked/>
@@ -104,6 +111,14 @@
             <option>STL popular for printing</option>
           </select>
         </label>
+      </p>
+      <p>
+        <select id="scaleSelect">
+          <option value="4">1:4 Quarter Scale</option>
+          <option value="3">1:3 Third Scale</option>
+          <option value="2">1:2 Half Scale</option>
+          <option value="1" selected>1:1 Full Scale</option>
+        </select>
       </p>
       <button id="cancelSaveBtn" formmethod="dialog">Cancel</button>
       <button autofocus id="applySaveBtn" value="default">Save</button>
