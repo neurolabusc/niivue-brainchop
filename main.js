@@ -241,11 +241,15 @@ async function main() {
       ops += " -l 1"
     let reduce = Math.min(Math.max(Number(shrinkPct.value) / 100, 0.01), 1)
     ops += " -r " + reduce.toString()
-    let hollowInt = Number(hollowSelect.value )
-    if (hollowInt > 0)
+    if (bubbleCheck.checked)
       ops += " -b 1" //fill bubbles
+    let hollowInt = Number(hollowSelect.value )
     if (hollowInt < 0)
       ops = " -hollow 0.5 "+hollowInt + ' '+ ops
+    let closeFloat = Number(closeMM.value)
+    if ((isFinite(closeFloat)) && (closeFloat > 0)){
+      ops = " -close 0.5 "+closeFloat + ' ' + 2 * closeFloat + ' '+ ops
+    }
     console.log('niimath operation', ops)
     const arrayBuffer = await wrapper.niimath(niiBuffer, ops )
     loadingCircle.classList.add('hidden')
@@ -272,7 +276,11 @@ async function main() {
     if (formatSelect.selectedIndex === 2) {
       format = 'stl'
     }
-    NVMeshUtilities.saveMesh(nv1.meshes[0].pts, nv1.meshes[0].tris, `mesh.${format}`, true)
+    const scale = 1 / Number(scaleSelect.value)
+    const pts = nv1.meshes[0].pts.slice()
+    for (let i = 0; i < pts.length; i++)
+      pts[i] *= scale;
+    NVMeshUtilities.saveMesh(pts, nv1.meshes[0].tris, `mesh.${format}`, true)
   }
 
   var diagnosticsString = ''

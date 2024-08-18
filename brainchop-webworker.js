@@ -1990,7 +1990,7 @@ async function inferenceFullVolumePhase1(
   }
 }
 
-async function enableProductionMode(textureF16Flag = true) {
+async function enableProductionMode(textureF16Flag = true, isLowMem = false) {
   // -- tf.setBackend('cpu')
   tf.setBackend('webgl');
   // -- tf.removeBackend('cpu')
@@ -2000,7 +2000,11 @@ async function enableProductionMode(textureF16Flag = true) {
   tf.env().set('DEBUG', false)
   tf.env().set('WEBGL_FORCE_F16_TEXTURES', textureF16Flag)
   // -- set this flag so that textures are deleted when tensors are disposed.
-  tf.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0)
+  // bug with Intel GPU and Windows can not use -1, required by NVidia for larger models
+  if (isLowMem)
+    tf.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD', 0)
+  else
+    tf.env().set('WEBGL_DELETE_TEXTURE_THRESHOLD', -1)
   // -- tf.env().set('WEBGL_PACK', false)
   // -- Put ready after sets above
   await tf.ready()
@@ -2031,7 +2035,7 @@ async function runInferenceWW(opts, modelEntry, niftiHeader, niftiImage, callbac
   console.log('Batch size: ', batchSize)
   console.log('Num of Channels: ', numOfChan)
   const model = await load_model(opts.rootURL + modelEntry.path)
-  await enableProductionMode(true)
+  await enableProductionMode(true, modelEntry.enableSeqConv)
   statData.TF_Backend = tf.getBackend()
   const modelObject = model
   let batchInputShape = []
