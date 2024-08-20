@@ -10,8 +10,10 @@ This is a version of [brainchop](https://github.com/neuroneural/brainchop) that 
 3. **Option 2** If your T1 MRI scan is in NIfTI format, drag and drop the file onto the web page.
 4. **Option 3** If your image is in DICOM format, it may load if you drag and drop the files. If this fails, convert your images with dcm2niix.
 5. Segment your brain scan by choosing a model from the `Segmentation Model` pull-down menu. Not all models with with all graphics cards. The `Tissue GWM (High Acc, Low Mem)` is a good starting point. Hopefully, it will accurately segment your brain into gray matter, white matter and cerebral spinal fluid.
-6. Press the `Create Mesh` button and select your preferred settings: 
+6. Press the `Create Mesh` button and select your preferred settings:
+
 ![settings dialog](Settings.png)
+
  - [Closing](https://en.wikipedia.org/wiki/Closing_(morphology)) removes small crevices and cavities in your mesh which can plague printing.
  - Fill bubbles will remove any cavities, this includes large cavities for example the ventricles for a brain scan.
  - The `Largest cluster only` will only extract a single mesh.
@@ -20,7 +22,7 @@ This is a version of [brainchop](https://github.com/neuroneural/brainchop) that 
 7. Once you have set your preferences, press `Apply`.
 8. You will see the mesh appear and can interactively view it. If you are unhappy with the result, repeat step 6 with different settings. If you want to print the results, press the `Save Mesh` button.
 
-### To run
+### Developers - Running a Local Live Demo
 
 ```bash
 git clone git@github.com:niivue/niivue-brainchop.git
@@ -29,12 +31,8 @@ npm install
 npm run dev
 ```
 
-Use the `Segmentation Model` pull down menu to run different tissue classifications.
 
-
-![brainchop](brainchop.png)
-
-### To build
+### Developers - Building the Web Page
 
 ```bash
 npm run build
