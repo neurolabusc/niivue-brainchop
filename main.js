@@ -1,5 +1,5 @@
 import { Niivue, NVMeshUtilities } from "@niivue/niivue"
-import {runInference } from './brainchop-mainthread.js'
+// import {runInference } from './brainchop-mainthread.js'
 import { inferenceModelsList, brainChopOpts } from "./brainchop-parameters.js"
 import { isChrome, localSystemDetails } from "./brainchop-telemetry.js"
 import MyWorker from "./brainchop-webworker.js?worker"
@@ -93,6 +93,13 @@ async function main() {
     await closeAllOverlays()
     await ensureConformed()
     let model = inferenceModelsList[this.selectedIndex]
+    model.isNvidia = false
+    const rendererInfo = nv1.gl.getExtension('WEBGL_debug_renderer_info')
+    if (rendererInfo) {
+      model.isNvidia = nv1.gl.getParameter(rendererInfo.UNMASKED_RENDERER_WEBGL).includes('NVIDIA')
+      
+    }
+    
     let opts = brainChopOpts
     opts.rootURL = location.href
     const isLocalhost = Boolean(
@@ -131,7 +138,8 @@ async function main() {
         }
       }
     } else {
-      runInference(opts, model, nv1.volumes[0].hdr, nv1.volumes[0].img, callbackImg, callbackUI)
+      console.log('Only provided with webworker code, see main brainchop github repository for main thread code')
+      // runInference(opts, model, nv1.volumes[0].hdr, nv1.volumes[0].img, callbackImg, callbackUI)
     }
   }
   saveBtn.onclick = function () {
