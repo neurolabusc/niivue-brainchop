@@ -1,7 +1,7 @@
 # NiiVue brainchop
 This is a version of [brainchop](https://github.com/neuroneural/brainchop) that converts voxel-based MRI scans to 3D meshes that can be printed. 
 
-![image of web page](brain2print)
+![image of web page](brain2print.png)
 
 ## Usage
 
