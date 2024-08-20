@@ -54,7 +54,8 @@ async function main() {
     nv1.setInterpolation(!smoothCheck.checked)
   }*/
   aboutBtn.onclick = function () {
-    window.alert("Drag and drop NIfTI images. Use pulldown menu to choose brainchop model")
+    const url = "https://neurolabusc.github.io/niivue-brainchop/";
+    window.open(url, '_blank');
   }
   /*diagnosticsBtn.onclick = function () {
     if (diagnosticsString.length < 1) {
