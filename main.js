@@ -54,7 +54,7 @@ async function main() {
     nv1.setInterpolation(!smoothCheck.checked)
   }*/
   aboutBtn.onclick = function () {
-    const url = "https://neurolabusc.github.io/niivue-brainchop/";
+    const url = "https://github.com/neurolabusc/niivue-brainchop";
     window.open(url, '_blank');
   }
   /*diagnosticsBtn.onclick = function () {
