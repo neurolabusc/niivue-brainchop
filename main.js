@@ -1,55 +1,58 @@
 import { Niivue, NVMeshUtilities } from "@niivue/niivue"
+import { Niimath } from "@niivue/niimath"
 // import {runInference } from './brainchop-mainthread.js'
 import { inferenceModelsList, brainChopOpts } from "./brainchop-parameters.js"
 import { isChrome, localSystemDetails } from "./brainchop-telemetry.js"
 import MyWorker from "./brainchop-webworker.js?worker"
 
-class NiiMathWrapper {
-  constructor(workerScript) {
-    this.worker = new Worker(workerScript)
-  }
-  static async load(workerScript = './niimathWorker.js') {
-    return new NiiMathWrapper(workerScript)
-  }
-  niimath(niiBuffer, operationsText) {
-    return new Promise((resolve, reject) => {
-      const niiBlob = new Blob([niiBuffer], { type: 'application/octet-stream' })
-      const inName = 'input.nii' // or derive from context
-      let outName = inName
-      if (operationsText.includes("-mesh")) {
-        outName = 'output.mz3' // or derive from context
-      }
-      const args = operationsText.trim().split(/\s+/)
-      args.unshift(inName)
-      args.push(outName)
-      const file = new File([niiBlob], inName)
-      this.worker.onmessage = (e) => {
-        if (e.data.blob instanceof Blob) {
-          const reader = new FileReader()
-          reader.onload = () => {
-            resolve(reader.result) // return ArrayBuffer
-          }
-          reader.onerror = () => {
-            reject(new Error('Failed to read the Blob as an ArrayBuffer'))
-          }
-          reader.readAsArrayBuffer(e.data.blob)
-        } else {
-          reject(new Error('Expected Blob from worker'))
-        }
-      }
-      this.worker.onerror = (e) => {
-        reject(new Error(e.message))
-      }
-      this.worker.postMessage({ blob: file, cmd: args, outName: outName })
-    })
-  }
-  terminate() {
-    this.worker.terminate()
-  }
-}
+// class NiiMathWrapper {
+//   constructor(workerScript) {
+//     this.worker = new Worker(workerScript)
+//   }
+//   static async load(workerScript = './niimathWorker.js') {
+//     return new NiiMathWrapper(workerScript)
+//   }
+//   niimath(niiBuffer, operationsText) {
+//     return new Promise((resolve, reject) => {
+//       const niiBlob = new Blob([niiBuffer], { type: 'application/octet-stream' })
+//       const inName = 'input.nii' // or derive from context
+//       let outName = inName
+//       if (operationsText.includes("-mesh")) {
+//         outName = 'output.mz3' // or derive from context
+//       }
+//       const args = operationsText.trim().split(/\s+/)
+//       args.unshift(inName)
+//       args.push(outName)
+//       const file = new File([niiBlob], inName)
+//       this.worker.onmessage = (e) => {
+//         if (e.data.blob instanceof Blob) {
+//           const reader = new FileReader()
+//           reader.onload = () => {
+//             resolve(reader.result) // return ArrayBuffer
+//           }
+//           reader.onerror = () => {
+//             reject(new Error('Failed to read the Blob as an ArrayBuffer'))
+//           }
+//           reader.readAsArrayBuffer(e.data.blob)
+//         } else {
+//           reject(new Error('Expected Blob from worker'))
+//         }
+//       }
+//       this.worker.onerror = (e) => {
+//         reject(new Error(e.message))
+//       }
+//       this.worker.postMessage({ blob: file, cmd: args, outName: outName })
+//     })
+//   }
+//   terminate() {
+//     this.worker.terminate()
+//   }
+// }
 
 async function main() {
-  const wrapper = await NiiMathWrapper.load()
+  const niimath = new Niimath()
+  await niimath.init()
+  // const wrapper = await NiiMathWrapper.load()
   /*smoothCheck.onchange = function () {
     nv1.setInterpolation(!smoothCheck.checked)
   }*/
@@ -242,29 +245,50 @@ async function main() {
   }
   applyBtn.onclick = async function () {
     const niiBuffer = await nv1.saveImage({volumeByIndex: nv1.volumes.length - 1}).buffer
+    const niiBlob = new Blob([niiBuffer], { type: 'application/octet-stream' })
+    const niiFile = new File([niiBlob], 'input.nii')
+    // get an ImageProcessor instance from niimath
+    // so we can build up the operations we want to perform
+    // based on the UI controls
+    let image = niimath.image(niiFile)
     loadingCircle.classList.remove('hidden')
-    //mesh with isosurface of 0.5
-    let ops = "-mesh -i 0.5"
+    // initialize the operations object for the niimath mesh function
+    let ops = {
+      i: 0.5,
+    }
     //const largestCheckValue = largestCheck.checked
-    if (largestCheck.checked)
-      ops += " -l 1"
+    if (largestCheck.checked) {
+      ops.l = 1
+    }
     let reduce = Math.min(Math.max(Number(shrinkPct.value) / 100, 0.01), 1)
-    ops += " -r " + reduce.toString()
-    if (bubbleCheck.checked)
-      ops += " -b 1" //fill bubbles
+    ops.r = reduce
+    if (bubbleCheck.checked) {
+      ops.b = 1
+    }
+
     let hollowInt = Number(hollowSelect.value )
-    if (hollowInt < 0)
-      ops = " -hollow 0.5 "+hollowInt + ' '+ ops
+    if (hollowInt < 0){
+      // append the hollow operation to the image processor
+      // but dont run it yet. 
+      image = image.hollow(0.5, hollowInt)
+    }
+
     let closeFloat = Number(closeMM.value)
     if ((isFinite(closeFloat)) && (closeFloat > 0)){
-      ops = " -close 0.5 "+closeFloat + ' ' + 2 * closeFloat + ' '+ ops
+      // append the close operation to the image processor
+      // but dont run it yet.
+      image = image.close(0.5, closeFloat, 2 * closeFloat)
     }
-    console.log('niimath operation', ops)
-    const arrayBuffer = await wrapper.niimath(niiBuffer, ops )
+    // add the mesh operations
+    image = image.mesh(ops)
+    console.log('niimath mesh operation', image.commands)
+    // finally, run the full set of operations
+    const outFile = await image.run('output.mz3')
+    const arrayBuffer = await outFile.arrayBuffer()
     loadingCircle.classList.add('hidden')
     if (nv1.meshes.length > 0)
       nv1.removeMesh(nv1.meshes[0])
-    await nv1.loadFromArrayBuffer(arrayBuffer, 'test.mz3')
+    await nv1.loadFromArrayBuffer(arrayBuffer, 'output.mz3')
     nv1.reverseFaces(0)
   }
   saveMeshBtn.onclick = function () {
